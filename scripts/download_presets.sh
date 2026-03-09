@@ -156,6 +156,9 @@ for preset in "${PRESETS[@]}"; do
         WAN_T2V_T2I_BATCH)
             TOTAL_FILES=$((TOTAL_FILES + 13))
             ;;
+            "MyPreset")
+            TOTAL_FILES=$((TOTAL_FILES + 1))
+            ;;
     esac
 done
 
@@ -296,6 +299,10 @@ for preset in "${PRESETS[@]}"; do
             download_with_progress "https://huggingface.co/uwg/upscaler/resolve/main/ESRGAN/4x_RealisticRescaler_100000_G.pth" "/workspace/ComfyUI/models/upscale_models"
             download_with_progress "https://huggingface.co/uwg/upscaler/resolve/main/ESRGAN/4x_fatal_Anime_500000_G.pth" "/workspace/ComfyUI/models/upscale_models"
             download_with_progress "https://huggingface.co/uwg/upscaler/resolve/main/ESRGAN/BSRGAN.pth" "/workspace/ComfyUI/models/upscale_models"
+            ;;
+            "MyPreset")
+            echo "**** Активация MyPreset ****"
+            cp -r /workspace/setup/presets/wan/MyPreset/*.json /workspace/ComfyUI/user/workflows/
             ;;
         *)
             echo "Не найден пресет WAN для '${preset}', пропускаем."
