@@ -19,9 +19,9 @@ curl -L -H "Authorization: Bearer $HF_TOKEN" -o /workspace/ComfyUI/models/unet/A
 # 3. Библиотеки
 pip install psutil nvidia-ml-py3
 
-# 4. Автозагрузка воркфлоу
+# 4. Автозагрузка воркфлоу (путь совпадает с твоим GitHub)
 mkdir -p /workspace/ComfyUI/user/default_workflows
-cp /workspace/vsyс-sketch/presets/*.json /workspace/ComfyUI/user/default_workflows/
-cp /workspace/vsyс-sketch/presets/Artius_wan2_2_14B_flf2v.json /workspace/ComfyUI/web/scripts/defaultGraph.json
+cp /workspace/vsyс-sketch/presets/wan/MyPreset/*.json /workspace/ComfyUI/user/default_workflows/
+cp /workspace/vsyс-sketch/presets/wan/MyPreset/Artius_wan2_2_14B_flf2v.json /workspace/ComfyUI/web/scripts/defaultGraph.json
 
 echo "All done! Launching ComfyUI..."
