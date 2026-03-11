@@ -1,27 +1,26 @@
 #!/bin/bash
 
-# 1. Создаем папки
-mkdir -p /workspace/ComfyUI/models/diffusion_models/
-mkdir -p /workspace/ComfyUI/models/vae
-mkdir -p /workspace/ComfyUI/models/text_encoders/
+# 1. Создаем папки, если их нет
+mkdir -p /workspace/ComfyUI/models/unet111
+mkdir -p /workspace/ComfyUI/models/vae111
+mkdir -p /workspace/ComfyUI/models/clip111
 
-# 2. Скачиваем модели (Здесь ВАЖНО: $ перед HF_TOKEN)
+# 2. Скачиваем модели (используем твой токен для доступа к Private репо)
 echo "Downloading Models..."
 
+# VAE
 curl -L -H "Authorization: Bearer $HF_TOKEN" -o /workspace/ComfyUI/models/vae/wan_2.1_vae.safetensors "https://huggingface.co/vsyc1987/wan_2.1_vae.safetensors/resolve/main/wan_2.1_vae.safetensors"
 
-curl -L -H "Authorization: Bearer $HF_TOKEN" -o /workspace/ComfyUI/models/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors "https://huggingface.co/vsyc1987/umt5_xxl_fp8_e4m3fn_scaled.safetensors/resolve/main/umt5_xxl_fp8_e4m3fn_scaled.safetensors"
+# CLIP (Encoder)
+curl -L -H "Authorization: Bearer $HF_TOKEN" -o /workspace/ComfyUI/models/clip/umt5_xxl_fp8_e4m3fn_scaled.safetensors "https://huggingface.co/vsyc1987/umt5_xxl_fp8_e4m3fn_scaled.safetensors/resolve/main/umt5_xxl_fp8_e4m3fn_scaled.safetensors"
 
+# UNET HIGH
 curl -L -H "Authorization: Bearer $HF_TOKEN" -o /workspace/ComfyUI/models/unet/Artius-Wan22-14b-I2V-high-Q4_K_M-v2.gguf "https://huggingface.co/vsyc1987/Artius-Wan22-14b-I2V-high-Q4_K_M-v2.gguf/resolve/main/Artius-Wan22-14b-I2V-high-Q4_K_M-v2.gguf"
 
+# UNET LOW
 curl -L -H "Authorization: Bearer $HF_TOKEN" -o /workspace/ComfyUI/models/unet/Artius-Wan22-14b-I2V-low-Q4_K_M-v2.gguf "https://huggingface.co/vsyc1987/Artius-Wan22-14b-I2V-low-Q4_K_M-v2.gguf/resolve/main/Artius-Wan22-14b-I2V-low-Q4_K_M-v2.gguf"
 
-# 3. Библиотеки
+# 3. Установка библиотек для индикаторов (Crystools)
 pip install psutil nvidia-ml-py3
-
-# 4. Автозагрузка воркфлоу
-mkdir -p /workspace/ComfyUI/user/default_workflows
-cp /workspace/vsyс-sketch/presets/*.json /workspace/ComfyUI/user/default_workflows/
-cp /workspace/vsyс-sketch/presets/Artius_wan2_2_14B_flf2v.json /workspace/ComfyUI/web/scripts/defaultGraph.json
 
 echo "All done! Launching ComfyUI..."
