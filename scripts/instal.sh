@@ -1,9 +1,10 @@
 #!/bin/bash
 
 # 1. Создаем папки
-mkdir -p /workspace/ComfyUI/models/unet
+mkdir -p /workspace/ComfyUI/models/diffusion_models/
 mkdir -p /workspace/ComfyUI/models/vae
-mkdir -p /workspace/ComfyUI/models/clip
+mkdir -p /workspace/ComfyUI/models/diffusion_models/
+mkdir -p /workspace/ComfyUI/models/vadim folder
 
 # 2. Скачиваем модели (Здесь ВАЖНО: $ перед HF_TOKEN)
 echo "Downloading Models..."
@@ -25,5 +26,9 @@ cp /workspace/vsyс-sketch/presets/wan/MyPreset/*.json /workspace/ComfyUI/user/d
 
 # Делаем твой воркфлоу основным при открытии
 cp /workspace/vsyс-sketch/presets/wan/MyPreset/Artius_wan2_2_14B_flf2v.json /workspace/ComfyUI/web/scripts/defaultGraph.json
+
+# Установка менеджера пресетов Смышникова
+cd "$CPATH/custom_nodes"
+git clone https://github.com/smisnikov/comfyui-preset-download-manager
 
 echo "All done! Launching ComfyUI..."
