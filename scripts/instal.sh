@@ -1,33 +1,29 @@
 #!/bin/bash
 
-# 1. Создаем папки
-mkdir -p /workspace/ComfyUI/models/diffusion_models/
-mkdir -p /workspace/ComfyUI/models/vae
-mkdir -p /workspace/ComfyUI/models/diffusion_models/
-mkdir -p /workspace/ComfyUI/models/vadim folder
+# 1. Находим реальный путь к ComfyUI
+CPATH=$(find /workspace -name "ComfyUI" -type d | head -n 1)
 
-# 2. Скачиваем модели (Здесь ВАЖНО: $ перед HF_TOKEN)
-echo "Downloading Models..."
+# 2. Создаем нужные папки
+mkdir -p "$CPATH/models/diffusion_models"
+mkdir -p "$CPATH/models/vae"
+mkdir -p "$CPATH/models/text_encoders"
+mkdir -p "$CPATH/models/vadim_folder"
 
-curl -L -H "Authorization: Bearer $HF_TOKEN" -o /workspace/ComfyUI/models/vae/wan_2.1_vae.safetensors "https://huggingface.co/vsyc1987/wan_2.1_vae.safetensors/resolve/main/wan_2.1_vae.safetensors"
+echo "=== STARTING DOWNLOAD INTO $CPATH ==="
 
-curl -L -H "Authorization: Bearer $HF_TOKEN" -o /workspace/ComfyUI/models/clip/umt5_xxl_fp8_e4m3fn_scaled.safetensors "https://huggingface.co/vsyc1987/umt5_xxl_fp8_e4m3fn_scaled.safetensors/resolve/main/umt5_xxl_fp8_e4m3fn_scaled.safetensors"
+# VAE
+wget --header="Authorization: Bearer $HF_TOKEN" -O "$CPATH/models/vae/wan_2.1_vae.safetensors" --progress=bar:force "https://huggingface.co/vsyc1987/wan_2.1_vae.safetensors/resolve/main/wan_2.1_vae.safetensors" 2>&1
 
-curl -L -H "Authorization: Bearer $HF_TOKEN" -o /workspace/ComfyUI/models/unet/Artius-Wan22-14b-I2V-high-Q4_K_M-v2.gguf "https://huggingface.co/vsyc1987/Artius-Wan22-14b-I2V-high-Q4_K_M-v2.gguf/resolve/main/Artius-Wan22-14b-I2V-high-Q4_K_M-v2.gguf"
+# Text Encoder
+wget --header="Authorization: Bearer $HF_TOKEN" -O "$CPATH/models/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors" --progress=bar:force "https://huggingface.co/vsyc1987/umt5_xxl_fp8_e4m3fn_scaled.safetensors/resolve/main/umt5_xxl_fp8_e4m3fn_scaled.safetensors" 2>&1
 
-curl -L -H "Authorization: Bearer $HF_TOKEN" -o /workspace/ComfyUI/models/unet/Artius-Wan22-14b-I2V-low-Q4_K_M-v2.gguf "https://huggingface.co/vsyc1987/Artius-Wan22-14b-I2V-low-Q4_K_M-v2.gguf/resolve/main/Artius-Wan22-14b-I2V-low-Q4_K_M-v2.gguf"
+# Wan 2.1 HIGH
+wget --header="Authorization: Bearer $HF_TOKEN" -O "$CPATH/models/diffusion_models/Artius-Wan22-14b-I2V-high-Q4_K_M-v2.gguf" --progress=bar:force "https://huggingface.co/vsyc1987/Artius-Wan22-14b-I2V-high-Q4_K_M-v2.gguf/resolve/main/Artius-Wan22-14b-I2V-high-Q4_K_M-v2.gguf" 2>&1
 
-# 3. Библиотеки
-pip install psutil nvidia-ml-py3
+# Wan 2.1 LOW
+wget --header="Authorization: Bearer $HF_TOKEN" -O "$CPATH/models/diffusion_models/Artius-Wan22-14b-I2V-low-Q4_K_M-v2.gguf" --progress=bar:force "https://huggingface.co/vsyc1987/Artius-Wan22-14b-I2V-low-Q4_K_M-v2.gguf/resolve/main/Artius-Wan22-14b-I2V-low-Q4_K_M-v2.gguf" 2>&1
 
-# 4. Автозагрузка воркфлоу (путь исправлен под твою структуру папок)
-mkdir -p /workspace/ComfyUI/user/default_workflows
-cp /workspace/vsyс-sketch/presets/wan/MyPreset/*.json /workspace/ComfyUI/user/default_workflows/
-
-# Делаем твой воркфлоу основным при открытии
-cp /workspace/vsyс-sketch/presets/wan/MyPreset/Artius_wan2_2_14B_flf2v.json /workspace/ComfyUI/web/scripts/defaultGraph.json
-
-# Установка менеджера пресетов Смышникова
+# 3. Установка менеджера Смышникова
 cd "$CPATH/custom_nodes"
 git clone https://github.com/smisnikov/comfyui-preset-download-manager
 
