@@ -2,34 +2,30 @@ FROM runpod/pytorch:2.2.1-py3.10-cuda12.1.1-devel-ubuntu22.04
 
 WORKDIR /workspace
 
-# 1. Клонируем ComfyUI и сразу создаем нужные папки для нод
+# 1. Клонируем основной ComfyUI
 RUN git clone https://github.com/comfyanonymous/ComfyUI.git
+
+# 2. Устанавливаем ноды (Manager, Crystools, Presets) напрямую в нужную папку
+RUN git clone https://github.com/ltdrdata/ComfyUI-Manager.git /workspace/ComfyUI/custom_nodes/ComfyUI-Manager && \
+    git clone https://github.com/crystian/ComfyUI-Crystools.git /workspace/ComfyUI/custom_nodes/ComfyUI-Crystools && \
+    git clone https://github.com/Tav9ls/ComfyUI-Custom-Presets-Manager.git /workspace/ComfyUI/custom_nodes/ComfyUI-Custom-Presets-Manager
+
 WORKDIR /workspace/ComfyUI
-RUN mkdir -p custom_nodes
 
-# 2. Установка нод: Manager, Crystools (ресурсы GPU), Custom Presets Manager (Смышленников)
-RUN cd custom_nodes && \
-    git clone https://github.com/ltdrdata/ComfyUI-Manager.git && \
-    git clone https://github.com/crystian/ComfyUI-Crystools.git && \
-    git clone https://github.com/Tav9ls/ComfyUI-Custom-Presets-Manager.git
-
-# 3. Обновление PyTorch 2.4.0 и установка зависимостей для всех нод
+# 3. Обновляем PyTorch и ставим все зависимости разом
 RUN pip install --upgrade pip && \
     pip install torch==2.4.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121 && \
     pip install -r requirements.txt && \
-    pip install -r custom_nodes/ComfyUI-Manager/requirements.txt && \
-    pip install -r custom_nodes/ComfyUI-Crystools/requirements.txt
+    pip install -r /workspace/ComfyUI/custom_nodes/ComfyUI-Manager/requirements.txt && \
+    pip install -r /workspace/ComfyUI/custom_nodes/ComfyUI-Crystools/requirements.txt
 
-# 4. Скрипт запуска: Качает модели, Workflow, запускает Jupyter и ComfyUI
+# 4. Скрипт запуска: Модели, Воркфлоу, Юпитер и запуск
 RUN echo '#!/bin/bash \n\
-# Фоновая загрузка моделей \n\
 wget --header="Authorization: Bearer hf_CfUcojEzeWjpZFrwHjAsUxfqzUesteZdh" -O models/vae/wan_2.1_vae.safetensors https://huggingface.co/vsyc1987/wan_2.1_vae.safetensors/resolve/main/wan_2.1_vae.safetensors & \n\
 wget --header="Authorization: Bearer hf_CfUcojEzeWjpZFrwHjAsUxfqzUesteZdh" -O models/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors https://huggingface.co/vsyc1987/umt5_xxl_fp8_e4m3fn_scaled.safetensors/resolve/main/umt5_xxl_fp8_e4m3fn_scaled.safetensors & \n\
 wget --header="Authorization: Bearer hf_CfUcojEzeWjpZFrwHjAsUxfqzUesteZdh" -O models/diffusion_models/wan2.1_high.gguf https://huggingface.co/vsyc1987/Artius-Wan22-14b-I2V-high-Q4_K_M-v2.gguf/resolve/main/Artius-Wan22-14b-I2V-high-Q4_K_M-v2.gguf & \n\
 wget --header="Authorization: Bearer hf_CfUcojEzeWjpZFrwHjAsUxfqzUesteZdh" -O models/diffusion_models/wan2.1_low.gguf https://huggingface.co/vsyc1987/Artius-Wan21-1.3b-low-f16.gguf/resolve/main/Artius-Wan21-1.3b-low-f16.gguf & \n\
-# Загрузка твоего Workflow \n\
 wget -O workflow_artius.json https://raw.githubusercontent.com/vsyc1987-sketch/ComfyUI-Wan-Docker/main/presets/Artius_wan2_2_14B_flf2v.json & \n\
-# Старт сервисов \n\
 /usr/bin/python3 -m jupyterlab --allow-root --ip=0.0.0.0 --port=8888 --no-browser --NotebookApp.token="" --NotebookApp.password="" & \n\
 python3 main.py --listen --port 8188' > /workspace/start.sh && chmod +x /workspace/start.sh
 
