@@ -1,4 +1,4 @@
-FROM smyshnikov/comfyui:base-torch2.8.0-cu128
+FROM runpod/stable-diffusion:models-1.0.0
 
 WORKDIR /workspace/runpod-slim/ComfyUI
 
