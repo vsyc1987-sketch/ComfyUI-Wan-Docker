@@ -2,24 +2,27 @@ FROM runpod/pytorch:2.2.1-py3.10-cuda12.1.1-devel-ubuntu22.04
 
 WORKDIR /workspace
 
-# 1. Клонируем основной ComfyUI
-RUN git clone https://github.com/comfyanonymous/ComfyUI.git
+# 1. Сначала клонируем ComfyUI
+RUN git clone https://github.com/comfyanonymous/ComfyUI.git /workspace/ComfyUI
 
-# 2. Устанавливаем ноды (Manager, Crystools, Presets) напрямую в нужную папку
-RUN git clone https://github.com/ltdrdata/ComfyUI-Manager.git /workspace/ComfyUI/custom_nodes/ComfyUI-Manager && \
-    git clone https://github.com/crystian/ComfyUI-Crystools.git /workspace/ComfyUI/custom_nodes/ComfyUI-Crystools && \
-    git clone https://github.com/Tav9ls/ComfyUI-Custom-Presets-Manager.git /workspace/ComfyUI/custom_nodes/ComfyUI-Custom-Presets-Manager
+# 2. Создаем папку для нод принудительно
+RUN mkdir -p /workspace/ComfyUI/custom_nodes
+
+# 3. Клонируем ноды по одной, чтобы билд не падал
+RUN git clone https://github.com/ltdrdata/ComfyUI-Manager.git /workspace/ComfyUI/custom_nodes/ComfyUI-Manager
+RUN git clone https://github.com/crystian/ComfyUI-Crystools.git /workspace/ComfyUI/custom_nodes/ComfyUI-Crystools
+RUN git clone https://github.com/Tav9ls/ComfyUI-Custom-Presets-Manager.git /workspace/ComfyUI/custom_nodes/ComfyUI-Custom-Presets-Manager
 
 WORKDIR /workspace/ComfyUI
 
-# 3. Обновляем PyTorch и ставим все зависимости разом
+# 4. Установка зависимостей (PyTorch 2.4.0 и библиотеки для нод)
 RUN pip install --upgrade pip && \
     pip install torch==2.4.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121 && \
     pip install -r requirements.txt && \
     pip install -r /workspace/ComfyUI/custom_nodes/ComfyUI-Manager/requirements.txt && \
     pip install -r /workspace/ComfyUI/custom_nodes/ComfyUI-Crystools/requirements.txt
 
-# 4. Скрипт запуска: Модели, Воркфлоу, Юпитер и запуск
+# 5. Скрипт запуска (Модели, Workflow, Jupyter, ComfyUI)
 RUN echo '#!/bin/bash \n\
 wget --header="Authorization: Bearer hf_CfUcojEzeWjpZFrwHjAsUxfqzUesteZdh" -O models/vae/wan_2.1_vae.safetensors https://huggingface.co/vsyc1987/wan_2.1_vae.safetensors/resolve/main/wan_2.1_vae.safetensors & \n\
 wget --header="Authorization: Bearer hf_CfUcojEzeWjpZFrwHjAsUxfqzUesteZdh" -O models/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors https://huggingface.co/vsyc1987/umt5_xxl_fp8_e4m3fn_scaled.safetensors/resolve/main/umt5_xxl_fp8_e4m3fn_scaled.safetensors & \n\
