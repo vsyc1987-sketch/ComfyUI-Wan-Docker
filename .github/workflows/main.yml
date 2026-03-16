@@ -23,5 +23,3 @@ jobs:
           context: .
           push: true
           tags: vsyc1987/comfyui-wan:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
