@@ -40,4 +40,6 @@ RUN find /workspace/ComfyUI/custom_nodes -maxdepth 2 -name "requirements.txt" -e
 COPY scripts/start.sh /workspace/start.sh
 RUN chmod +x /workspace/start.sh
 
+
+RUN echo 'cat /workspace/logo/runpod.txt' >> /root/.local/bin/welcome.sh && echo 'sh /root/.local/bin/welcome.sh' >> /root/.bashrc.
 CMD ["/workspace/start.sh"]
