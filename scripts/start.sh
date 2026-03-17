@@ -1,51 +1,35 @@
 #!/bin/bash
 
-# Цвета для удобства чтения в логах RunPod
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
-echo -e "${YELLOW}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!${NC}"
-echo -e "${YELLOW}!!! СИСТЕМА САМОДИАГНОСТИКИ И ЗАПУСКА ARTOIS !!!${NC}"
-echo -e "${YELLOW}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!${NC}"
-
-# 1. ПРОВЕРКА ДИСКОВОГО ПРОСТРАНСТВА
-FREE_SPACE=$(df -h /workspace | awk 'NR==2 {print $4}' | sed 's/G//')
-echo -e "--- ПРОВЕРКА ДИСКА: Свободно ${FREE_SPACE} GB ---"
-if (( $(echo "$FREE_SPACE < 40" | bc -l) )); then
-    echo -e "${RED}!!! ОШИБКА: МЕСТА МЕНЬШЕ 40GB! МОДЕЛИ НЕ ВЛЕЗУТ. НУЖНО 60-80GB !!!${NC}"
-else
-    echo -e "${GREEN}>>> МЕСТА ДОСТАТОЧНО.${NC}"
+# Флаг-предохранитель, чтобы не качать всё по кругу
+if [ -f "/workspace/ready.txt" ]; then
+    echo "!!! СИСТЕМА УЖЕ ГОТОВА. БЫСТРЫЙ ЗАПУСК... !!!"
+    cd /workspace
+    python3 main.py --listen 0.0.0.0 --port 8188
+    exit 0
 fi
 
-# 2. ПОИСК ЯДРА И ПРОВЕРКА ПУТЕЙ
-echo -e "--- ПОИСК COMFYUI В СИСТЕМЕ... ---"
-REAL_MAIN=$(find /workspace -maxdepth 3 -name "main.py" | grep -v "custom_nodes" | grep -v "lib2to3" | head -n 1)
+echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+echo "!!! СИСТЕМА САМОДИАГНОСТИКИ И ЗАПУСКА ARTOIS !!!"
+echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
 
-if [ -z "$REAL_MAIN" ]; then
-    echo -e "${RED}!!! КРИТИЧЕСКАЯ ОШИБКА: main.py НЕ НАЙДЕН! ПРОВЕРЬТЕ DOCKER-ОБРАЗ !!!${NC}"
-    exit 1
-fi
-COMFY_DIR=$(dirname "$REAL_MAIN")
-echo -e "${GREEN}>>> ПУТЬ ПОДТВЕРЖДЕН: $COMFY_DIR${NC}"
-
-# 3. ПОЧИНКА БИБЛИОТЕК (FIX TORCHAUDIO)
-echo -e "--- ЛЕЧЕНИЕ БИБЛИОТЕК (Fixing undefined symbols)... ---"
+# 1. Сразу лечим библиотеки (без лишних проверок)
 pip install --no-cache-dir torchaudio==2.1.0+cu121 --index-url https://download.pytorch.org/whl/cu121 --quiet
-if [ $? -eq 0 ]; then
-    echo -e "${GREEN}>>> БИБЛИОТЕКИ ОБНОВЛЕНЫ.${NC}"
-else
-    echo -e "${YELLOW}!!! ПРЕДУПРЕЖДЕНИЕ: ОШИБКА ПРИ ОБНОВЛЕНИИ БИБЛИОТЕК !!!${NC}"
-fi
 
-# 4. УСТАНОВКА ТВОЕГО ВОРКФЛОУ КАК ДЕФОЛТНОГО
-echo -e "--- ЗАГРУЗКА ШАБЛОНА ARTOIS WAN 2.2... ---"
+# 2. Установка воркфлоу как дефолтного
 WFLOW_URL="https://raw.githubusercontent.com/vsyck/ComfyUI-Wan-Docker/main/presets/Artius_wan2_2_14.json"
-mkdir -p "$COMFY_DIR/web/scripts"
-wget -q -O "$COMFY_DIR/web/scripts/default_workflow.json" "$WFLOW_URL"
-wget -q -O "$COMFY_DIR/artius_wan.json" "$WFLOW_URL"
-echo -e "${GREEN}>>> ВОРКФЛОУ УСТАНОВЛЕН ПО УМОЛЧАНИЮ.${NC}"
+mkdir -p /workspace/web/scripts
+wget -q -O /workspace/web/scripts/default_workflow.json "$WFLOW_URL"
+wget -q -O /workspace/artius_wan.json "$WFLOW_URL"
 
-# 5. ПРОВЕРКА И ЗАГРУЗКА МОДЕЛЕЙ
-echo
+# 3. Загрузка моделей (wget -c позволит докачать, если оборвется)
+mkdir -p /workspace/models/unet /workspace/models/vae
+echo ">>> ЗАГРУЗКА МОДЕЛЕЙ (ЖДЕМ)..."
+wget -q -c -O /workspace/models/vae/wan_2.1_vae.safetensors "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors"
+wget -q -c -O /workspace/models/unet/wan2.1_t2v_1.3b_bf16.safetensors "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/unet/wan2.1_t2v_1.3b_bf16.safetensors"
+
+# Создаем файл-метку, что всё готово
+touch /workspace/ready.txt
+
+echo "!!! ВСЕ ПРОВЕРКИ ПРОЙДЕНЫ. ЗАПУСК... !!!"
+cd /workspace
+python3 main.py --listen 0.0.0.0 --port 8188
