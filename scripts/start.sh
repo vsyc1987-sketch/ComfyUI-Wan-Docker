@@ -1,60 +1,51 @@
 #!/bin/bash
 
-# Цветовая пометка (в логах RunPod будет выглядеть как яркий текст)
-echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-echo "!!! СИСТЕМА САМОДИАГНОСТИКИ И ЗАПУСКА КОРРЕКТИРОВКА !!!"
-echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+# Цвета для удобства чтения в логах RunPod
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
 
-# 1. ПРОВЕРКА ДИСКА (Критично для моделей)
+echo -e "${YELLOW}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!${NC}"
+echo -e "${YELLOW}!!! СИСТЕМА САМОДИАГНОСТИКИ И ЗАПУСКА ARTOIS !!!${NC}"
+echo -e "${YELLOW}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!${NC}"
+
+# 1. ПРОВЕРКА ДИСКОВОГО ПРОСТРАНСТВА
 FREE_SPACE=$(df -h /workspace | awk 'NR==2 {print $4}' | sed 's/G//')
-echo "!!! СВОБОДНО: ${FREE_SPACE}GB"
-if [ "${FREE_SPACE%.*}" -lt 40 ]; then
-    echo "!!! ВНИМАНИЕ: МЕСТА МЕНЬШЕ 40GB! МОДЕЛИ МОГУТ НЕ ВЛЕЗТЬ !!!"
+echo -e "--- ПРОВЕРКА ДИСКА: Свободно ${FREE_SPACE} GB ---"
+if (( $(echo "$FREE_SPACE < 40" | bc -l) )); then
+    echo -e "${RED}!!! ОШИБКА: МЕСТА МЕНЬШЕ 40GB! МОДЕЛИ НЕ ВЛЕЗУТ. НУЖНО 60-80GB !!!${NC}"
+else
+    echo -e "${GREEN}>>> МЕСТА ДОСТАТОЧНО.${NC}"
 fi
 
-# 2. ПРОВЕРКА И СОЗДАНИЕ СТРУКТУРЫ ПАПОК
-echo "!!! ПРОВЕРКА ПАПОК..."
-BASE_DIR="/workspace/ComfyUI"
-mkdir -p "$BASE_DIR/models/unet"
-mkdir -p "$BASE_DIR/models/vae"
-mkdir -p "$BASE_DIR/custom_nodes"
+# 2. ПОИСК ЯДРА И ПРОВЕРКА ПУТЕЙ
+echo -e "--- ПОИСК COMFYUI В СИСТЕМЕ... ---"
+REAL_MAIN=$(find /workspace -maxdepth 3 -name "main.py" | grep -v "custom_nodes" | grep -v "lib2to3" | head -n 1)
 
-# 3. ПОИСК ПРАВИЛЬНОГО main.py (Игнорируем мусор из плагинов)
-echo "!!! ВЕРИФИКАЦИЯ ЯДРА COMFYUI..."
-# Сначала ищем в корне, если нет - ищем в папке ComfyUI, исключая системный хлам
-REAL_PATH=$(find /workspace -maxdepth 2 -name "main.py" | grep -v "custom_nodes" | grep -v "lib2to3" | head -n 1)
-
-if [ -z "$REAL_PATH" ]; then
-    echo "!!! ОШИБКА: main.py НЕ НАЙДЕН! СОЗДАЕМ ОТЧЕТ..."
-    ls -R /workspace > /workspace/folder_structure.txt
-    echo "!!! СТРУКТУРА ПАПОК СОХРАНЕНА В folder_structure.txt !!!"
+if [ -z "$REAL_MAIN" ]; then
+    echo -e "${RED}!!! КРИТИЧЕСКАЯ ОШИБКА: main.py НЕ НАЙДЕН! ПРОВЕРЬТЕ DOCKER-ОБРАЗ !!!${NC}"
     exit 1
 fi
-echo "!!! ПУТЬ ПОДТВЕРЖДЕН: $REAL_PATH"
+COMFY_DIR=$(dirname "$REAL_MAIN")
+echo -e "${GREEN}>>> ПУТЬ ПОДТВЕРЖДЕН: $COMFY_DIR${NC}"
 
-# 4. ЗАГРУЗКА РЕСУРСОВ (Только если их нет)
-if [ ! -f "$BASE_DIR/workflow_artius.json" ]; then
-    echo "!!! ЗАГРУЗКА ВОРКФЛОУ..."
-    wget -q -O "$BASE_DIR/workflow_artius.json" "https://raw.githubusercontent.com/vsyck/ComfyUI-Wan-Docker/main/presets/Artius_wan2_2_14.json"
+# 3. ПОЧИНКА БИБЛИОТЕК (FIX TORCHAUDIO)
+echo -e "--- ЛЕЧЕНИЕ БИБЛИОТЕК (Fixing undefined symbols)... ---"
+pip install --no-cache-dir torchaudio==2.1.0+cu121 --index-url https://download.pytorch.org/whl/cu121 --quiet
+if [ $? -eq 0 ]; then
+    echo -e "${GREEN}>>> БИБЛИОТЕКИ ОБНОВЛЕНЫ.${NC}"
+else
+    echo -e "${YELLOW}!!! ПРЕДУПРЕЖДЕНИЕ: ОШИБКА ПРИ ОБНОВЛЕНИИ БИБЛИОТЕК !!!${NC}"
 fi
 
-# Фоновая загрузка моделей (с проверкой на существование)
-if [ ! -f "$BASE_DIR/models/vae/wan_2.1_vae.safetensors" ]; then
-    wget -b -q -O "$BASE_DIR/models/vae/wan_2.1_vae.safetensors" "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors"
-fi
+# 4. УСТАНОВКА ТВОЕГО ВОРКФЛОУ КАК ДЕФОЛТНОГО
+echo -e "--- ЗАГРУЗКА ШАБЛОНА ARTOIS WAN 2.2... ---"
+WFLOW_URL="https://raw.githubusercontent.com/vsyck/ComfyUI-Wan-Docker/main/presets/Artius_wan2_2_14.json"
+mkdir -p "$COMFY_DIR/web/scripts"
+wget -q -O "$COMFY_DIR/web/scripts/default_workflow.json" "$WFLOW_URL"
+wget -q -O "$COMFY_DIR/artius_wan.json" "$WFLOW_URL"
+echo -e "${GREEN}>>> ВОРКФЛОУ УСТАНОВЛЕН ПО УМОЛЧАНИЮ.${NC}"
 
-# 5. ЗАПУСК С ПЕРЕХВАТОМ ОШИБОК
-echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-echo "!!! ЗАПУСК СЕРВЕРА... ПОРТ 8188              !!!"
-echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-
-cd $(dirname "$REAL_PATH")
-
-# Запуск. Если выпадет ошибка, она будет выделена знаками !!!
-python3 main.py --listen 0.0.0.0 --port 8188 2>&1 | while read line; do
-    if [[ "$line" == *"Error"* || "$line" == *"ImportError"* || "$line" == *"ModuleNotFoundError"* ]]; then
-        echo "!!! КРИТИЧЕСКАЯ ОШИБКА: $line !!!"
-    else
-        echo "$line"
-    fi
-done
+# 5. ПРОВЕРКА И ЗАГРУЗКА МОДЕЛЕЙ
+echo
