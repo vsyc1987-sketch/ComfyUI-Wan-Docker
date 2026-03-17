@@ -12,6 +12,6 @@ wget -O /workspace/ComfyUI/workflow_artius.json https://raw.githubusercontent.co
 
 # 4. Запуск ComfyUI
 echo "Launching ComfyUI..."
-# Переходим в папку, где лежит main.py
-cd /workspace/ComfyUI || cd /workspace
+# Переходим в корень, где лежит main.py
+cd /
 python3 main.py --listen 0.0.0.0 --port 8188
