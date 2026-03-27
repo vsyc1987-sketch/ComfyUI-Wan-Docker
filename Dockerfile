@@ -1,44 +1,24 @@
-ARG BASE_IMAGE="runpod/pytorch:2.2.1-py3.10-cuda12.1.1-devel-ubuntu22.04"
-FROM ${BASE_IMAGE}
-
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-ENV DEBIAN_FRONTEND=noninteractive
-ENV PIP_BREAK_SYSTEM_PACKAGES=1
+FROM runpod/pytorch:2.1.0-py3.10-cuda12.1.1-devel
 
 WORKDIR /workspace
 
-# 1. Системные пакеты
-RUN apt-get update && apt-get install --yes --no-install-recommends \
-    git wget curl bash nginx-light ffmpeg build-essential cmake ninja-build \
-    libgl1 libglib2.0-0 && apt-get clean
+# Установка ComfyUI
+RUN git clone https://github.com/comfyanonymous/ComfyUI.git
 
-# 2. Клонируем ComfyUI
-RUN git clone https://github.com/comfyanonymous/ComfyUI.git . && \
-    pip install --no-cache-dir -r requirements.txt
+WORKDIR /workspace/ComfyUI
 
-# 3. Установка SageAttention (для твоей 4090)
-RUN pip install --no-cache-dir sageattention triton transformers accelerate xformers
+# Установка зависимостей
+RUN pip install -r requirements.txt
 
-# 4. Безопасное клонирование нод (Цикл Смышленникова)
-COPY custom_nodes.txt /custom_nodes.txt
-RUN cd custom_nodes && \
-    while read -r url || [ -n "$url" ]; do \
-        [ -z "$url" ] && continue; \
-        dir_name=$(basename "$url" .git); \
-        if [ ! -d "$dir_name" ]; then git clone --recursive "$url"; fi; \
-    done < /custom_nodes.txt && \
-    find . -maxdepth 2 -name "requirements.txt" -exec pip install --no-cache-dir -r {} \;
+# Кастом ноды
+WORKDIR /workspace/ComfyUI/custom_nodes
+RUN git clone https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite
+RUN git clone https://github.com/comfyanonymous/ComfyUI-GGUF
 
-# 5. Настройка приветствия (исправлено)
-RUN mkdir -p /root/.local/bin && \
-    echo '#!/bin/bash' > /root/.local/bin/welcome.sh && \
-    echo 'if [ -f /workspace/logo/runpod.txt ]; then cat /workspace/logo/runpod.txt; fi' >> /root/.local/bin/welcome.sh && \
-    chmod +x /root/.local/bin/welcome.sh && \
-    echo 'sh /root/.local/bin/welcome.sh' >> /root/.bashrc
+# Workflow
+WORKDIR /workspace
+RUN wget -O workflow.json https://raw.githubusercontent.com/vsyc1987-sketch/ComfyUI-Wan-Docker/main/presets/Artius_wan2_2_14.json
 
-# 6. Копируем скрипты запуска
-COPY scripts/start.sh /start.sh
-RUN chmod +x /start.sh
-
-EXPOSE 8188 8888 22
-CMD ["/start.sh"]
+# Старт
+WORKDIR /workspace/ComfyUI
+CMD ["python", "main.py", "--listen", "0.0.0.0", "--port", "8188"]
