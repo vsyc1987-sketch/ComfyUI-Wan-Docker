@@ -1,10 +1,11 @@
-# Используем твой базовый образ (укажи свой, если он отличается)
+# Используем стабильный образ
 FROM runpod/comfyui:latest
 
-# 1. Устанавливаем рабочую директорию точно по твоему пути
+# Устанавливаем рабочую директорию, которую мы видели в твоем Jupyter
 WORKDIR /workspace/runpod-slim/ComfyUI
 
-# 2. Установка всех необходимых кастомных нод (без моделей)
+# 1. УСТАНОВКА КАСТОМНЫХ НОД
+# Мы делаем это через RUN, чтобы они стали частью образа
 RUN cd custom_nodes && \
     git clone --depth 1 https://github.com/ltdrdata/ComfyUI-Manager && \
     git clone --depth 1 https://github.com/city96/ComfyUI-GGUF && \
@@ -12,20 +13,18 @@ RUN cd custom_nodes && \
     git clone --depth 1 https://github.com/ssitu/ComfyUI_UltimateSDUpscale && \
     git clone --depth 1 https://github.com/smyshnikof/ComfyUI-Model-Downloader
 
-# 3. Подготовка структуры папок для шаблонов
-RUN mkdir -p user/default/workflows && mkdir -p web/scripts
+# 2. ПОДГОТОВКА ПАПОК ДЛЯ ШАБЛОНОВ
+RUN mkdir -p user/default/workflows web/scripts
 
-# 4. Загрузка твоего workflow (заменяем дефолтный и добавляем в шаблоны)
-# Ссылка на твой RAW файл с GitHub
-ADD https://raw.githubusercontent.com/vsyck/ComfyUI-Wan-Docker/main/presets/Artius_wan2_2_14.json web/scripts/default_workflow.json
-ADD https://raw.githubusercontent.com/vsyck/ComfyUI-Wan-Docker/main/presets/Artius_wan2_2_14.json user/default/workflows/Artius_Wan.json
+# 3. ЗАГРУЗКА ВОРКФЛОУ
+# Используем wget вместо ADD, чтобы избежать капризов кэша Docker Buildx
+RUN wget -q -O web/scripts/default_workflow.json https://raw.githubusercontent.com/vsyck/ComfyUI-Wan-Docker/main/presets/Artius_wan2_2_14.json && \
+    wget -q -O user/default/workflows/Artius_Wan.json https://raw.githubusercontent.com/vsyck/ComfyUI-Wan-Docker/main/presets/Artius_wan2_2_14.json
 
-# 5. Установка зависимостей для нод (чтобы не было ошибок импорта)
-RUN pip install --no-cache-dir \
-    opencv-python-headless \
-    ffmpeg-python \
-    tqdm
+# 4. УСТАНОВКА ЗАВИСИМОСТЕЙ (чтобы ноды не были красными)
+RUN pip install --no-cache-dir opencv-python-headless ffmpeg-python tqdm
 
-# 6. Команда запуска
-# --disable-security ОБЯЗАТЕЛЕН для работы ноды Смышникова
-CMD ["python3", "main.py", "--listen", "0.0.0.0", "--port", "8188", "--preview-method", "auto", "--disable-security"]
+# 5. КОМАНДА ЗАПУСКА С ОТКЛЮЧЕНИЕМ ЗАЩИТЫ
+# --disable-security: снимает ту самую защиту для скачивания моделей
+# --user-directory: принудительно указывает ComfyUI искать настройки в нашей папке
+CMD ["python3", "main.py", "--listen", "0.0.0.0", "--port", "8188", "--preview-method", "auto", "--disable-security", "--user-directory", "/workspace/runpod-slim/ComfyUI"]
