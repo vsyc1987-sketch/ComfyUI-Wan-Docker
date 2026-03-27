@@ -1,34 +1,31 @@
-FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime
+# Используем твой базовый образ (укажи свой, если он отличается)
+FROM runpod/comfyui:latest
 
-WORKDIR /workspace
+# 1. Устанавливаем рабочую директорию точно по твоему пути
+WORKDIR /workspace/runpod-slim/ComfyUI
 
-# ставим git и wget
-RUN apt-get update && apt-get install -y git wget
+# 2. Установка всех необходимых кастомных нод (без моделей)
+RUN cd custom_nodes && \
+    git clone --depth 1 https://github.com/ltdrdata/ComfyUI-Manager && \
+    git clone --depth 1 https://github.com/city96/ComfyUI-GGUF && \
+    git clone --depth 1 https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite && \
+    git clone --depth 1 https://github.com/ssitu/ComfyUI_UltimateSDUpscale && \
+    git clone --depth 1 https://github.com/smyshnikof/ComfyUI-Model-Downloader
 
-# ставим ComfyUI
-RUN git clone https://github.com/comfyanonymous/ComfyUI.git
+# 3. Подготовка структуры папок для шаблонов
+RUN mkdir -p user/default/workflows && mkdir -p web/scripts
 
-WORKDIR /workspace/ComfyUI
+# 4. Загрузка твоего workflow (заменяем дефолтный и добавляем в шаблоны)
+# Ссылка на твой RAW файл с GitHub
+ADD https://raw.githubusercontent.com/vsyck/ComfyUI-Wan-Docker/main/presets/Artius_wan2_2_14.json web/scripts/default_workflow.json
+ADD https://raw.githubusercontent.com/vsyck/ComfyUI-Wan-Docker/main/presets/Artius_wan2_2_14.json user/default/workflows/Artius_Wan.json
 
-# зависимости
-RUN pip install -r requirements.txt
+# 5. Установка зависимостей для нод (чтобы не было ошибок импорта)
+RUN pip install --no-cache-dir \
+    opencv-python-headless \
+    ffmpeg-python \
+    tqdm
 
-# кастом ноды
-WORKDIR /workspace/ComfyUI/custom_nodes
-RUN git clone https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite
-RUN git clone https://github.com/comfyanonymous/ComfyUI-GGUF
-
-# workflow
-WORKDIR /workspace
-RUN wget -O workflow.json https://raw.githubusercontent.com/vsyc1987-sketch/ComfyUI-Wan-Docker/main/presets/Artius_wan2_2_14.json
-
-# стартовый скрипт
-RUN echo '#!/bin/bash\n\
-python /workspace/ComfyUI/main.py --listen 0.0.0.0 --port 8188 &\n\
-sleep 10\n\
-curl -X POST http://127.0.0.1:8188/load -H "Content-Type: application/json" -d @/workspace/workflow.json\n\
-wait' > /workspace/start.sh
-
-RUN chmod +x /workspace/start.sh
-
-CMD ["/workspace/start.sh"]
+# 6. Команда запуска
+# --disable-security ОБЯЗАТЕЛЕН для работы ноды Смышникова
+CMD ["python3", "main.py", "--listen", "0.0.0.0", "--port", "8188", "--preview-method", "auto", "--disable-security"]
