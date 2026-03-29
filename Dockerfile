@@ -2,22 +2,17 @@ FROM runpod/comfyui:latest
 
 USER root
 
-# 1. Системные настройки
-RUN apt-get update && apt-get install -y git wget && apt-get clean && \
-    git config --global http.sslVerify false && \
-    git config --global --add safe.directory '*'
+# Системные настройки
+RUN apt-get update && apt-get install -y git wget && apt-get clean
 
-WORKDIR /workspace/runpod-slim/ComfyUI
+# ИСПОЛЬЗУЕМ СТАНДАРТНЫЙ ПУТЬ ОБРАЗА
+WORKDIR /workspace/ComfyUI
 
-# 2. ИСПРАВЛЕНИЕ: Кладем воркфлоу туда, где ComfyUI v0.17.2 его ТОЧНО увидит
-# Мы создаем файл comfy_default.json — это главный файл автозагрузки
+# Скачиваем воркфлоу в папку, которую образ точно подхватит
 RUN mkdir -p user/default && \
-    wget -q -O user/default/comfy_default.json https://raw.githubusercontent.com/vsyc1987-sketch/ComfyUI-Wan-Docker/refs/heads/main/presets/Artius_wan2_2_14.json
+    wget -q -O user/default/comfy_default.json "https://raw.githubusercontent.com/vsyc1987-sketch/ComfyUI-Wan-Docker/refs/heads/main/presets/Artius_wan2_2_14.json"
 
-# 3. Зависимости
-RUN pip install --no-cache-dir opencv-python-headless ffmpeg-python tqdm
-
-# 4. Запуск с принудительной загрузкой воркфлоу
+# Установка нод при старте (чтобы избежать проблем с правами при сборке)
 CMD git config --global --add safe.directory '*' && \
     mkdir -p custom_nodes && cd custom_nodes && \
     for repo in \
@@ -31,5 +26,4 @@ CMD git config --global --add safe.directory '*' && \
         [ -d "$dir_name" ] || git clone --depth 1 "$repo"; \
     done && \
     cd .. && \
-    python3 main.py --listen 0.0.0.0 --port 8188 --preview-method auto --disable-security \
-    --workspace-load-file /workspace/runpod-slim/ComfyUI/user/default/comfy_default.json
+    python3 main.py --listen 0.0.0.0 --port 8188 --workspace-load-file /workspace/ComfyUI/user/default/comfy_default.json
