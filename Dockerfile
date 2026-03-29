@@ -2,17 +2,19 @@ FROM runpod/comfyui:latest
 
 USER root
 
-# Системные настройки
-RUN apt-get update && apt-get install -y git wget && apt-get clean
-
-# ИСПОЛЬЗУЕМ СТАНДАРТНЫЙ ПУТЬ ОБРАЗА
+# 1. Работаем ТОЛЬКО в стандартной папке (никаких runpod-slim!)
 WORKDIR /workspace/ComfyUI
 
-# Скачиваем воркфлоу в папку, которую образ точно подхватит
-RUN mkdir -p user/default && \
-    wget -q -O user/default/comfy_default.json "https://raw.githubusercontent.com/vsyc1987-sketch/ComfyUI-Wan-Docker/refs/heads/main/presets/Artius_wan2_2_14.json"
+# 2. Системные настройки
+RUN apt-get update && apt-get install -y git wget && apt-get clean
 
-# Установка нод при старте (чтобы избежать проблем с правами при сборке)
+# 3. Скачиваем воркфлоу и СРАЗУ делаем его базой данных
+# Это тот самый секрет, чтобы всё загрузилось "само" без ручного импорта
+RUN mkdir -p user/default && \
+    wget -q -O user/default/comfy_default.json "https://raw.githubusercontent.com/vsyc1987-sketch/ComfyUI-Wan-Docker/refs/heads/main/presets/Artius_wan2_2_14.json" && \
+    cp user/default/comfy_default.json user/default/comfy_db.sqlite
+
+# 4. Установка нод в CMD (чтобы не было проблем с доступом)
 CMD git config --global --add safe.directory '*' && \
     mkdir -p custom_nodes && cd custom_nodes && \
     for repo in \
