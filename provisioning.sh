@@ -1,6 +1,6 @@
 #!/bin/bash
 # 1. Определяем правильный путь ComfyUI (в официальном образе это всегда /workspace/ComfyUI)
-INSTALL_DIR="/workspace/ComfyUI"
+INSTALL_DIR="/workspace/runpod-slim/ComfyUI"
 cd $INSTALL_DIR
 
 # 2. Создаем структуру папок для твоего воркфлоу
