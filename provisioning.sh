@@ -1,16 +1,13 @@
 #!/bin/bash
-# В официальном образе путь всегда такой:
-cd /workspace/ComfyUI
+# Принудительно идем в папку, которую мы видим в твоем логе
+cd /workspace/runpod-slim/ComfyUI
 
-# Скачиваем твой воркфлоу
+# Создаем папку и качаем воркфлоу
 mkdir -p user/default
 wget -q -O user/default/my_workflow.json "https://raw.githubusercontent.com/vsyc1987-sketch/ComfyUI-Wan-Docker/main/presets/Artius_wan2_2_14.json"
 
-# Устанавливаем ноды (Manager, GGUF, VHS)
+# Устанавливаем недостающие ноды
 cd custom_nodes
-git clone https://github.com/ltdrdata/ComfyUI-Manager.git || true
 git clone https://github.com/city96/ComfyUI-GGUF.git || true
 git clone https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git || true
 cd ..
-
-echo "SETUP COMPLETE"
