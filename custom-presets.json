@@ -1,9 +1,8 @@
-[
-  {
-    "author": "Artius",
-    "title": "Wan 2.2 First Last Frame",
-    "category": "Wan_2.2",
-    "description": "Мой основной воркфлоу для Wan 2.2",
-    "url": "https://raw.githubusercontent.com/vsyc1987-sketch/ComfyUI-Wan-Docker/main/presets/flf/Artius_wan2_2_14.json"
-  }
-]
+{
+  "custom_workflows": [
+    {
+      "name": "Wan 2.2 First Last Frame",
+      "url": "https://raw.githubusercontent.com/vsyc1987-sketch/ComfyUI-Wan-Docker/main/presets/flf/Artius_wan2_2_14.json"
+    }
+  ]
+}
