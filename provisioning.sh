@@ -11,7 +11,7 @@ fi
 
 cd "$COMFY_PATH"
 
-# 2. Ставим ноды для работы интерфейса (база Смышникова)
+# 2. Ставим ноды для работы интерфейса
 cd custom_nodes
 git clone https://github.com/ltdrdata/ComfyUI-Manager.git || true
 git clone https://github.com/yolain/ComfyUI-Easy-Use.git || true
@@ -19,7 +19,7 @@ git clone https://github.com/city96/ComfyUI-GGUF.git || true
 git clone https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git || true
 cd ..
 
-# 3. Подключаем твое меню пресетов к Менеджеру
+# 3. Подключаем твое меню пресетов (ВАЖНО: имя файла должно быть custom-presets.json)
 mkdir -p custom_nodes/ComfyUI-Manager/
 echo '{"custom_workflows": ["https://raw.githubusercontent.com/vsyc1987-sketch/ComfyUI-Wan-Docker/main/custom-presets.json"]}' > custom_nodes/ComfyUI-Manager/config.json
 
