@@ -1,5 +1,5 @@
 # Используем базовый образ ComfyUI
-FROM runpod/stable-diffusion:comfy-ui-5.0.1
+FROM runpod/stable-diffusion:comfy-ui-6.0.2
 
 # Создаем рабочую директорию
 WORKDIR /workspace
