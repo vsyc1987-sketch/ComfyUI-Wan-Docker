@@ -1,21 +1,20 @@
-# Используем базовый образ ComfyUI
+# Используем актуальный рабочий образ
 FROM runpod/stable-diffusion:comfy-ui-6.0.2
 
-# Создаем рабочую директорию
+# Рабочая директория
 WORKDIR /workspace
 
-# Копируем твой пресет воркфлоу, чтобы он всегда был в меню
+# Копируем воркфлоу
 COPY user_workflows/ /workspace/runpod-slim/ComfyUI/user_workflows/
 
-# Копируем pre_start.sh из твоей новой папки scripts в корень /workspace
-# Именно здесь RunPod ищет этот файл для автозапуска
+# Копируем тот самый скрипт Смышникова для автозапуска
 COPY scripts/pre_start.sh /workspace/pre_start.sh
 
-# Даем права на выполнение обоим скриптам
+# Даем права на запуск
 RUN chmod +x /workspace/pre_start.sh
 
-# Указываем стандартный порт
+# Порт для ComfyUI
 EXPOSE 8188
 
-# Запуск основной команды (RunPod сам подхватит pre_start.sh перед этим)
+# Запуск системы
 CMD ["python3", "main.py", "--listen", "--port", "8188"]
