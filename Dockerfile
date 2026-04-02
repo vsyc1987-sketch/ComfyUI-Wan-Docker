@@ -1,19 +1,34 @@
-FROM ghcr.io/ai-dock/comfyui:latest-cuda-12.1.1-runtime-22.04
+FROM pytorch/pytorch:2.3.1-cuda12.1-cudnn8-runtime
 
-# Устанавливаем rsync для работы скрипта
-RUN apt-get update && apt-get install -y rsync && apt-get clean
+WORKDIR /workspace
 
-# Копируем твои файлы в стандартные для этого образа папки
-COPY scripts/pre_start.sh /opt/ai-dock/bin/pre-start.sh
-COPY user_workflows/ /workspace/comfyui/user/default/workflows/
+# Установка зависимостей
+RUN apt-get update && apt-get install -y git wget curl libgl1-mesa-glx libglib2.0-0 rsync && rm -rf /var/lib/apt/lists/*
 
-# Делаем скрипт исполняемым
-RUN chmod +x /opt/ai-dock/bin/pre-start.sh
+# Клонируем ComfyUI и фиксируем стабильную версию (чтобы не было ошибки AttributeError)
+RUN git clone https://github.com/comfyanonymous/ComfyUI.git /workspace/ComfyUI && \
+    cd /workspace/ComfyUI && \
+    git checkout v0.3.15 && \
+    pip install --no-cache-dir -r requirements.txt
 
-# СРАЗУ ПОДМЕНЯЕМ ДЕФОЛТНЫЙ ВОРКФЛОУ (Тот самый метод)
-RUN cp /workspace/comfyui/user/default/workflows/workflow.json /workspace/comfyui/web/scripts/default_workflow.json
+# Копируем твои файлы из GitHub
+WORKDIR /workspace
+COPY scripts/ /workspace/scripts/
+COPY user_workflows/ /workspace/user_workflows/
+RUN chmod +x /workspace/scripts/pre_start.sh
+
+# ПРЯМАЯ ПОДМЕНА: Создаем папки и копируем воркфлоу
+RUN mkdir -p /workspace/ComfyUI/web/scripts/ && \
+    mkdir -p /workspace/ComfyUI/user/default/workflows/ && \
+    cp /workspace/user_workflows/workflow.json /workspace/ComfyUI/web/scripts/default_workflow.json && \
+    cp /workspace/user_workflows/workflow.json /workspace/ComfyUI/user/default/workflows/workflow.json
 
 # Переменная как у Смышникова
 ENV USE_SAGE_ATTENTION="true"
 
-# Порт и запуск уже настроены в базовом образе ai-dock
+# Вшивка автозапуска
+RUN sed -i '1i import os\nos.system("bash /workspace/scripts/pre_start.sh")' /workspace/ComfyUI/main.py
+
+EXPOSE 8188
+
+CMD ["python3", "/workspace/ComfyUI/main.py", "--listen", "0.0.0.0", "--port", "8188"]
