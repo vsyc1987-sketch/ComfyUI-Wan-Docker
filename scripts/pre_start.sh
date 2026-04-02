@@ -1,29 +1,31 @@
 #!/bin/bash
 
-echo "!!! [INIT] STARTING SMYSHNIKOV-STYLE SETUP !!!"
+export PYTHONUNBUFFERED=1
 
-# 1. Создаем папку если её нет
-mkdir -p /workspace/user_workflows
+# Путь, куда ComfyUI сохраняет пользовательские воркфлоу (как у Смышникова)
+DST_WORKFLOWS_DIR="/workspace/ComfyUI/user/default/workflows"
+SRC_MY_WORKFLOWS="/workspace/user_workflows"
 
-# 2. Скачиваем воркфлоу по ссылке из переменной
-if [ ! -z "$WORKFLOW_JSON_URL" ]; then
-    echo "!!! [STEP 1] Downloading workflow from GitHub !!!"
-    curl -sL "$WORKFLOW_JSON_URL" -o "$PROMPT_PATH"
-fi
+echo "**** Copying Wan workflows (if any) ****"
 
-# 3. Подменяем стандартный воркфлоу твоим
-if [ -f "$PROMPT_PATH" ]; then
-    echo "!!! [STEP 2] Applying your workflow to ComfyUI !!!"
-    cp "$PROMPT_PATH" "$COMFY_DEFAULT_WORKFLOW"
+# Создаем папку, если её нет
+mkdir -p "$DST_WORKFLOWS_DIR"
+
+# Копируем твой воркфлоу из папки образа в папку пресетов ComfyUI
+if [ -d "$SRC_MY_WORKFLOWS" ]; then
+    rsync -au "$SRC_MY_WORKFLOWS/" "$DST_WORKFLOWS_DIR/"
+    echo "**** Workflows copied to $DST_WORKFLOWS_DIR ****"
+    
+    # Специфический шаг: делаем твой воркфлоу стандартным
+    cp "$SRC_MY_WORKFLOWS/workflow.json" "/workspace/ComfyUI/web/scripts/default_workflow.json"
 else
-    echo "!!! [ERROR] Workflow file not found at $PROMPT_PATH !!!"
+    echo "Skip: $SRC_MY_WORKFLOWS does not exist."
 fi
 
-# 4. Установка ComfyUI-Manager (стандарт шаблона)
-cd /workspace/ComfyUI/custom_nodes
-if [ ! -d "ComfyUI-Manager" ]; then
-    echo "!!! [STEP 3] Installing ComfyUI-Manager !!!"
-    git clone https://github.com/ltdrdata/ComfyUI-Manager.git
+# Установка SageAttention (если переменная true)
+if [ "${USE_SAGE_ATTENTION,,}" = "true" ]; then
+    if ! pip show sageattention > /dev/null 2>&1; then
+        echo "**** Installing SageAttention2... ****"
+        pip install sageattention
+    fi
 fi
-
-echo "!!! [READY] PRE-START FINISHED !!!"
