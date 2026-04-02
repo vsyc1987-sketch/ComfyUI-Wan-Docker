@@ -1,21 +1,28 @@
 #!/bin/bash
 
-echo "Starting pre-start script..."
+# Функция для вывода как у Смышникова (заметно в логах)
+msg() {
+    echo "----------------------------------------------------------------"
+    echo ">>> ПРОВЕРКА: $1"
+    echo "----------------------------------------------------------------"
+}
 
-# 1. Создаем структуру папок, если её нет
+msg "ЗАПУСК ПРЕДСТАРТОВОЙ ПОДГОТОВКИ"
+
+# Создаем структуру папок (стандарт)
 mkdir -p /workspace/ComfyUI/user_workflows
-mkdir -p /workspace/ComfyUI/models/checkpoints
-mkdir -p /workspace/ComfyUI/models/diffusion_models
-mkdir -p /workspace/ComfyUI/models/vae
+mkdir -p /workspace/ComfyUI/web/scripts/
 
-# 2. Скачиваем твой workflow и ставим его как дефолтный
-echo "Downloading workflow..."
-wget -O /workspace/ComfyUI/user_workflows/default_workflow.json https://raw.githubusercontent.com/vsyc1987-sketch/ComfyUI-Wan-Docker/refs/heads/main/presets/flf/Artius_wan2_2_14.json
+# Скачиваем воркфлоу (тихо, без лишнего мусора в логах)
+msg "ЗАГРУЗКА ВОРКФЛОУ..."
+wget -q -O /workspace/ComfyUI/user_workflows/workflow.json "https://raw.githubusercontent.com/vsyc1987-sketch/ComfyUI-Wan-Docker/refs/heads/main/user_workflows/workflow.json"
 
-# Копируем его в системную папку ComfyUI, чтобы он открылся сразу при загрузке страницы
-cp /workspace/ComfyUI/user_workflows/default_workflow.json /workspace/ComfyUI/web/scripts/default_workflow.json
+# Проверка и установка дефолта
+if [ -f /workspace/ComfyUI/user_workflows/workflow.json ]; then
+    cp /workspace/ComfyUI/user_workflows/workflow.json /workspace/ComfyUI/web/scripts/default_workflow.json
+    msg "ВОРКФЛОУ УСТАНОВЛЕН! [OK]"
+else
+    msg "ОШИБКА: ФАЙЛ НЕ НАЙДЕН! [ERROR]"
+fi
 
-# 3. Установка прав (на всякий случай)
-chmod -R 777 /workspace/ComfyUI/user_workflows
-
-echo "Pre-start script finished."
+msg "ПОДГОТОВКА ЗАВЕРШЕНА. ПЕРЕДАЮ УПРАВЛЕНИЕ COMFYUI."
