@@ -1,25 +1,26 @@
-FROM pytorch/pytorch:2.3.1-cuda12.1-cudnn8-runtime
+#!/bin/bash
 
-WORKDIR /workspace
+echo "!!! [START] Running pre-start script by Smyshnikof logic !!!"
 
-RUN apt-get update && apt-get install -y \
-    git wget libgl1-mesa-glx libglib2.0-0 \
-    && rm -rf /var/lib/apt/lists/*
+# 1. Пути (согласно структуре в Dockerfile)
+MY_WORKFLOW="/workspace/user_workflows/workflow.json"
+COMFY_DEFAULT_PATH="/workspace/ComfyUI/web/scripts/default_workflow.json"
 
-RUN git clone https://github.com/comfyanonymous/ComfyUI.git .
-RUN pip install --no-cache-dir -r requirements.txt
+# 2. Проверка и подмена воркфлоу (Магия автозагрузки)
+if [ -f "$MY_WORKFLOW" ]; then
+    echo "!!! [REPORT] Copying your workflow to default position..."
+    cp "$MY_WORKFLOW" "$COMFY_DEFAULT_PATH"
+    echo "!!! [SUCCESS] Workflow replaced!"
+else
+    echo "!!! [ERROR] Workflow file not found at $MY_WORKFLOW"
+fi
 
-# Создаем папку заранее, чтобы Docker не ругался
-RUN mkdir -p /workspace/scripts /workspace/user_workflows
+# 3. Установка кастомных нод (если нужно добавить еще — просто допиши git clone ниже)
+cd /workspace/ComfyUI/custom_nodes
 
-# Копируем содержимое папок из GitHub
-COPY scripts/ /workspace/scripts/
-COPY user_workflows/ /workspace/user_workflows/
+if [ ! -d "ComfyUI-Manager" ]; then
+    echo "!!! [INSTALL] Downloading ComfyUI-Manager..."
+    git clone https://github.com/ltdrdata/ComfyUI-Manager.git
+fi
 
-# Даем права (теперь файл точно будет там)
-RUN chmod +x /workspace/scripts/pre_start.sh
-
-EXPOSE 8188
-
-# Запуск строго по пути scripts
-CMD ["/bin/bash", "-c", "bash /workspace/scripts/pre_start.sh && python3 main.py --listen 0.0.0.0 --port 8188"]
+echo "!!! [FINISH] Pre-start configuration complete. Starting ComfyUI..."
