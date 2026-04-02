@@ -11,23 +11,20 @@ RUN apt-get update && apt-get install -y \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. Клонируем официальный ComfyUI
-RUN git clone https://github.com/comfyanonymous/ComfyUI.git .
-
-# 3. Установка зависимостей Python
+# 2. Клонируем ComfyUI (если его еще нет в базовом слое)
+RUN git clone https://github.com/comfyanonymous/ComfyUI.git . || true
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 4. Создаем структуру папок ПЕРЕД копированием
-RUN mkdir -p /workspace/user_workflows /workspace/scripts /workspace/web/scripts
-
-# 5. Копируем твои файлы из репозитория GitHub
+# 3. Копируем ТВОИ файлы из GitHub в образ
+# Копируем папку со скриптами и папку с воркфлоу
+COPY scripts/ /workspace/scripts/
 COPY user_workflows/ /workspace/user_workflows/
-COPY scripts/pre_start.sh /workspace/scripts/pre_start.sh
 
-# 6. Даем права на исполнение
+# 4. Даем права на запуск (обязательно!)
 RUN chmod +x /workspace/scripts/pre_start.sh
 
 EXPOSE 8188
 
-# 7. Запуск: сначала скрипт настройки, потом сам Comfy
-CMD ["/bin/bash", "-c", "/workspace/scripts/pre_start.sh && python3 main.py --listen 0.0.0.0 --port 8188"]
+# 5. ЗАПУСК: строго через bash и по полному пути
+# Мы используем bash -c, чтобы сначала выполнить скрипт, а потом запустить ComfyUI
+CMD ["/bin/bash", "-c", "bash /workspace/scripts/pre_start.sh && python3 main.py --listen 0.0.0.0 --port 8188"]
